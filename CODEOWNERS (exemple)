@@ -1,0 +1,54 @@
+Fichier : .github/CODEOWNERS
+<!--swift -->
+/docs/ @team-docs
+/src/backend/ @backend-team
+/src/frontend/ @frontend-team
+
+
+GitHub Actions — CI (exemple Node.js)
+
+Fichier : .github/workflows/ci.yml
+<!--- yaml -->
+name: CI
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - run: npm ci
+      - run: npm test
+
+
+Action GitHub → Trello (carte en Done quand PR mergée)
+Fichier : .github/workflows/trello-on-merge.yml
+
+name: Update Trello on PR merge
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-trello:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move Trello card
+        env:
+          TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          TRELLO_LIST_DONE: "ID_LISTE_DONE"
+        run: |
+          CARD=$(echo "${{ github.event.pull_request.body }}" | grep -oP '(?<=TRELLO: )\w+')
+          if [ -n "$CARD" ]; then
+            curl -s -X PUT "https://api.trello.com/1/cards/$CARD" \
+              -d "idList=$TRELLO_LIST_DONE" \
+              -d "key=$TRELLO_KEY" -d "token=$TRELLO_TOKEN"
+          fi
+
+⚡ Cette action suppose que tu ajoutes une ligne TRELLO: <shortLink> dans le corps de la PR.
