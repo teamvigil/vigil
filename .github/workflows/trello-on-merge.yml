@@ -1,0 +1,22 @@
+name: Update Trello on PR merge
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  update-trello:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Move Trello card
+        env:
+          TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
+          TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+          TRELLO_LIST_DONE: "ID_LISTE_DONE"
+        run: |
+          CARD=$(echo "${{ github.event.pull_request.body }}" | grep -oP '(?<=TRELLO: )\w+')
+          if [ -n "$CARD" ]; then
+            curl -s -X PUT "https://api.trello.com/1/cards/$CARD" \
+              -d "idList=$TRELLO_LIST_DONE" \
+              -d "key=$TRELLO_KEY" -d "token=$TRELLO_TOKEN"
+          fi
